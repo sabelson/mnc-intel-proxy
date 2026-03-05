@@ -5,7 +5,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
 app.post('/search', async (req, res) => {
   try {
     const { username, password, criteria } = req.body;
@@ -82,8 +83,7 @@ Return ONLY valid JSON, no other text:
 
   } catch (err) {
     res.status(500).json({ error: err.message });
-    const path = require('path');
-app.use(express.static(path.join(__dirname, 'public')));
+    
   }
 });
 
