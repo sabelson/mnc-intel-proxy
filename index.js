@@ -82,6 +82,8 @@ Return ONLY valid JSON, no other text:
 
   } catch (err) {
     res.status(500).json({ error: err.message });
+    const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
   }
 });
 
