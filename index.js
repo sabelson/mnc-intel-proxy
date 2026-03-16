@@ -73,7 +73,8 @@ app.post('/search', async (req, res) => {
     });
 
     const claudeData = await claudeRes.json();
-    const text = claudeData.content[0].text;
+    const text = if (!claudeData.content || !claudeData.content[0]) throw new Error('Claude returned no response: ' + JSON.stringify(claudeData));
+const text = claudeData.content[0].text;
     const clean = text.replace(/```json|```/g, '').trim();
     res.json(JSON.parse(clean));
 
