@@ -41,3 +41,52 @@ app.post('/search', async (req, res) => {
       if (!d.records || d.records.length === 0) break;
       all = all.concat(d.records);
       if (d.records.length < 50) keepGoing = false;
+      offset += 50;
+    }
+
+    const companies = all.map(function(a) {
+      return {
+        name: a.name,
+        industry: a.industry,
+        revenue: a.annual_revenue,
+        location: (a.billing_address_city || '') + ' ' + (a.billing_address_country || ''),
+        ownership: a.ownership || a.account_type,
+        lastModified: a.date_modified ? a.date_modified.split('T')[0] : '',
+        employees: a.employees
+      };
+    });
+
+    const prompt = 'You are a senior M&A analyst at MNC Capital. Analyse these companies against the criteria and return a ranked shortlist. CRITERIA: ' + criteria + ' COMPANIES (' + companies.length + ' records): ' + JSON.stringify(companies) + ' Return ONLY valid JSON, no other text, no markdown: {"results":[{"rank":1,"name":"","score":85,"industry":"","revenue":"","location":"","ownership":"","lastContact":"","employees":"","matchReasons":"","redFlags":"","outreachMessage":""}],"summary":""}';
+
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const claudeData = await claudeRes.json();
+
+    if (!claudeData.content || !claudeData.content[0]) {
+      throw new Error('Claude error: ' + JSON.stringify(claudeData));
+    }
+
+    const text = claudeData.content[0].text;
+    const clean = text.replace(/```json|```/g, '').trim();
+    res.json(JSON.parse(clean));
+
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(process.env.PORT || 3000, function() {
+  console.log('MNC Intel proxy running');
+});
